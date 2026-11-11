@@ -186,8 +186,8 @@ textarea.input{height:126px; padding:11px 12px; align-items:flex-start; line-hei
 .modal-f{padding:15px 20px; border-top:1px solid var(--line-2); display:flex; gap:9px; justify-content:flex-end; background:#FCFDFF}
 
 /* login */
-.login{display:grid; grid-template-columns:1.02fr 1fr; width:100%; min-height:900px}
-.login-l{background:#0C1424; padding:56px 60px; color:#fff; position:relative; overflow:hidden; display:flex; flex-direction:column}
+.login{display:grid; grid-template-columns:1.02fr 1fr; width:100%; min-height:100vh; min-height:100dvh}
+.login-l{background:#0C1424; padding:56px 60px; color:#fff; position:relative; overflow:hidden; display:flex; flex-direction:column; box-sizing:border-box}
 .login-l::before{content:""; position:absolute; width:520px; height:520px; border-radius:50%; background:radial-gradient(circle,rgba(59,130,246,.30),transparent 65%); top:-160px; right:-180px}
 .login-l::after{content:""; position:absolute; width:420px; height:420px; border-radius:50%; background:radial-gradient(circle,rgba(16,185,129,.16),transparent 65%); bottom:-160px; left:-120px}
 .login-quote{font-size:26px; font-weight:700; line-height:1.35; letter-spacing:-.025em; margin-top:auto; position:relative; max-width:430px}
@@ -260,10 +260,8 @@ a { color: inherit; text-decoration: none; }
   padding: 24px 28px 44px;
 }
 
-/* ---------- halaman login ---------- */
-
-.login { min-height: 100vh; }
-.login-l, .login-r { min-height: 100vh; }
+/* ---------- halaman login (override base) ---------- */
+/* sudah diatur di blok .login di atas; baris ini cukup untuk desktop */
 
 /* ---------- kontrol form sungguhan di dalam .input ---------- */
 
