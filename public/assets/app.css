@@ -354,14 +354,170 @@ dialog#dialog-hapus::backdrop { background: rgba(12, 20, 36, .42); backdrop-filt
   body { background: #fff; }
 }
 
+/* ---------- hamburger button (mobile) ---------- */
+
+.btn-hamburger {
+  display: none;
+  width: 38px; height: 38px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: #fff;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-2);
+  cursor: pointer;
+  flex: 0 0 38px;
+}
+
+/* overlay gelap saat sidebar mobile terbuka */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 20, 36, .45);
+  backdrop-filter: blur(2px);
+  z-index: 39;
+}
+.sidebar-overlay.aktif { display: block; }
+
+/* ---------- tablet (≤ 1080px) ---------- */
+
 @media (max-width: 1080px) {
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-2e, .grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .search { width: 180px; }
+  .content { padding: 20px 18px 36px; }
+  .login { grid-template-columns: 1fr; }
+  .login-l { min-height: auto; padding: 40px 32px; }
+  .login-quote { margin-top: 32px; font-size: 22px; }
+  .login-r { min-height: auto; padding: 40px 32px 60px; }
 }
 
-@media (max-width: 760px) {
-  .sidebar { display: none; }
-  .grid-4 { grid-template-columns: minmax(0, 1fr); }
-  .content { padding: 16px 14px 32px; }
-  .topbar { padding: 0 14px; }
+/* ---------- mobile (≤ 768px) ---------- */
+
+@media (max-width: 768px) {
+  /* Frame */
+  .frame {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* sidebar jadi drawer overlay */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 260px;
+    height: 100vh;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+    box-shadow: 4px 0 24px rgba(12,20,36,.28);
+    display: flex !important;
+  }
+  .sidebar.terbuka {
+    transform: translateX(0);
+  }
+
+  /* hamburger tampil */
+  .btn-hamburger { display: flex; }
+
+  /* topbar lebih compact */
+  .topbar { padding: 0 14px; gap: 10px; }
+
+  /* search tersembunyi di mobile */
+  .search { display: none; }
+
+  /* grid menjadi single column */
+  .grid-4 { grid-template-columns: 1fr; }
+  .grid-2, .grid-2e { grid-template-columns: 1fr; }
+
+  /* content padding lebih kecil */
+  .content { padding: 14px 12px 32px; }
+
+  /* page-head jadi kolom di mobile */
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .head-actions {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .head-actions .btn { flex: 1; justify-content: center; }
+
+  /* h1 lebih kecil */
+  .h1 { font-size: 18px; }
+
+  /* form filter chips scroll horizontal */
+  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .chips::-webkit-scrollbar { display: none; }
+
+  /* filter form stack */
+  .card form[method="GET"] { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+  /* tabel scroll horizontal */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ================= LOGIN RESPONSIVE ================= */
+  .login {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+  }
+  .login-l {
+    min-height: auto;
+    padding: 32px 20px 28px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .login-quote {
+    font-size: 19px;
+    margin-top: 24px;
+    max-width: 100%;
+  }
+  .login-points {
+    display: none; /* Sembunyikan bullet points panjang di HP agar form cepat terlihat */
+  }
+  .login-r {
+    min-height: auto;
+    padding: 28px 16px 48px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+  }
+  .login-card {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+  }
+  .login-t {
+    font-size: 20px;
+  }
+  .login-s {
+    font-size: 12px;
+  }
+
+  /* modal full width di mobile */
+  .modal { width: calc(100% - 32px); }
+
+  /* kv-row stack */
+  .kv-row { flex-direction: column; gap: 2px; }
+  .kv-k { width: auto; }
+
+  /* stat value lebih kecil */
+  .stat-v { font-size: 22px; }
+
+  /* donut lebih kecil */
+  .donut { width: 100px; height: 100px; flex: 0 0 100px; }
+  .donut::after { inset: 13px; }
+
+  /* bar-row stack */
+  .bar-row { grid-template-columns: 1fr 1fr; gap: 6px; }
 }
