@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\LogKeamanan;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,13 @@ class PastikanPeran
         }
 
         if (! in_array($user->role->value, $peran, true)) {
+            LogKeamanan::catat(
+                'akses_ditolak',
+                $user,
+                null,
+                'Peran '.$user->role->value.' mencoba membuka '.$request->path()
+            );
+
             abort(403, 'Peran Anda tidak berhak membuka halaman ini.');
         }
 

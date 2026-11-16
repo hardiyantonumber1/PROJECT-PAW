@@ -9,13 +9,14 @@ use App\Models\TindakLanjut;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class TindakLanjutController extends Controller
 {
     public function form(Request $request, Aspirasi $aspirasi): View
     {
-        $this->pastikanBolehMenangani($request, $aspirasi);
+        Gate::authorize('tindakLanjut', $aspirasi);
 
         $aspirasi->load(['pengguna.unit', 'kategori', 'unit', 'tindakLanjut.pengguna.unit']);
 
@@ -37,7 +38,7 @@ class TindakLanjutController extends Controller
 
     public function store(TindakLanjutRequest $request, Aspirasi $aspirasi): RedirectResponse
     {
-        $this->pastikanBolehMenangani($request, $aspirasi);
+        Gate::authorize('tindakLanjut', $aspirasi);
 
         $data = $request->validated();
         $tujuan = StatusAspirasi::from($data['status_akhir']);
@@ -59,8 +60,21 @@ class TindakLanjutController extends Controller
                 'tanggal' => now(),
             ]);
 
+            /*
+             * Setiap tindak lanjut dihitung sebagai "sudah ditangani":
+             * EskalasiService memakai kolom ini untuk menahan eskalasi selama
+             * masa tenggang respons, dan penanggung jawab dicatat sekali
+             * (petugas pertama yang menangani).
+             */
+            $aspirasi->forceFill([
+                'ditangani_pada' => now(),
+                'penanggung_jawab_id' => $aspirasi->penanggung_jawab_id ?? $request->user()->id,
+            ]);
+
             if ($tujuan === $aspirasi->status) {
-                return; // status tidak berubah, cukup catat tanggapan.
+                $aspirasi->save(); // status tidak berubah, cukup catat tanggapan.
+
+                return;
             }
 
             $aspirasi->status = $tujuan;
@@ -81,15 +95,5 @@ class TindakLanjutController extends Controller
             ->with('sukses', $tetap
                 ? 'Tanggapan untuk '.$aspirasi->kode.' ditambahkan tanpa mengubah status.'
                 : 'Status '.$aspirasi->kode.' diperbarui menjadi '.$tujuan->value.'.');
-    }
-
-    /** Petugas hanya boleh menangani aspirasi unitnya sendiri; admin bebas. */
-    private function pastikanBolehMenangani(Request $request, Aspirasi $aspirasi): void
-    {
-        $user = $request->user();
-
-        if ($user->isPetugas() && $aspirasi->unit_id !== $user->unit_id) {
-            abort(403, 'Aspirasi ini bukan bagian dari unit Anda.');
-        }
     }
 }

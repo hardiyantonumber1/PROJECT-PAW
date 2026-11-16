@@ -12,6 +12,9 @@
         'unit' => '<rect x="3.2" y="7.2" width="17.6" height="12.6" rx="2"/><path d="M8.6 7.2V5.6A1.6 1.6 0 0 1 10.2 4h3.6a1.6 1.6 0 0 1 1.6 1.6v1.6"/><path d="M3.2 12.4h17.6"/>',
         'pengguna' => '<circle cx="9.2" cy="8.4" r="3.4"/><path d="M3 20c0-3.2 2.8-5.4 6.2-5.4S15.4 16.8 15.4 20"/><path d="M16.4 5.3a3.3 3.3 0 0 1 0 6.2M18 14.9c2.1.5 3.5 2.1 3.5 4.4"/>',
         'keluar' => '<path d="M14.5 8.2V5.6A1.6 1.6 0 0 0 12.9 4H5.6A1.6 1.6 0 0 0 4 5.6v12.8A1.6 1.6 0 0 0 5.6 20h7.3a1.6 1.6 0 0 0 1.6-1.6v-2.6"/><path d="M10.4 12h9.2M16.4 8.6 19.8 12l-3.4 3.4"/>',
+        'eskalasi' => '<path d="M3.5 17.5 9 12l3.5 3.5L20.5 7"/><path d="M15.5 7h5v5"/>',
+        'audit' => '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 3.5V7h3.5"/><path d="M12 8v4.4l3 1.8"/>',
+        'keamanan' => '<path d="M12 3.2 19.5 6v6c0 4.2-3.1 7.4-7.5 8.8C7.6 19.4 4.5 16.2 4.5 12V6L12 3.2Z"/><path d="m9.2 12.1 2 2 3.6-3.7"/>',
     ];
 
     $menu = match (true) {
@@ -34,6 +37,10 @@
             ['label' => 'Menu utama'],
             ['nama' => 'Rekapitulasi', 'rute' => 'admin.rekap', 'ikon' => 'rekap'],
             ['nama' => 'Semua Aspirasi', 'rute' => 'aspirasi.semua', 'ikon' => 'daftar'],
+            ['label' => 'Pengawasan'],
+            ['nama' => 'Eskalasi & SLA', 'rute' => 'admin.eskalasi', 'ikon' => 'eskalasi'],
+            ['nama' => 'Jejak Audit', 'rute' => 'admin.audit', 'ikon' => 'audit'],
+            ['nama' => 'Log Keamanan', 'rute' => 'admin.keamanan', 'ikon' => 'keamanan'],
             ['label' => 'Master data'],
             ['nama' => 'Kategori', 'rute' => 'admin.kategori', 'ikon' => 'kategori'],
             ['nama' => 'Unit', 'rute' => 'admin.unit', 'ikon' => 'unit'],

@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AntrianController;
 use App\Http\Controllers\AspirasiController;
+use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EskalasiController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\RekapController;
@@ -65,7 +67,7 @@ Route::middleware('auth')->group(function () {
         ->name('aspirasi.create');
 
     Route::post('/aspirasi', [AspirasiController::class, 'store'])
-        ->middleware('role:mahasiswa')
+        ->middleware(['role:mahasiswa', 'throttle:10,60'])
         ->name('aspirasi.store');
 
     Route::get('/aspirasi/{aspirasi}', [AspirasiController::class, 'show'])->name('aspirasi.show');
@@ -99,6 +101,14 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin,admin_prodi,ultksp,pimpinan')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/rekap', [RekapController::class, 'index'])->name('rekap');
         Route::get('/rekap/ekspor', [RekapController::class, 'ekspor'])->name('rekap.ekspor');
+
+        /* ------------------------------------------- pengawasan & audit */
+
+        Route::get('/eskalasi', [EskalasiController::class, 'index'])->name('eskalasi');
+        Route::post('/eskalasi/jalankan', [EskalasiController::class, 'jalankan'])->name('eskalasi.jalankan');
+
+        Route::get('/audit', [AuditController::class, 'index'])->name('audit');
+        Route::get('/keamanan', [AuditController::class, 'keamanan'])->name('keamanan');
 
         Route::get('/kategori', [KategoriController::class, 'index'])->name('kategori');
         Route::post('/kategori', [KategoriController::class, 'store'])->name('kategori.store');

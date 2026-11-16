@@ -7,9 +7,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Aspirasi extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $table = 'aspirasi';
 
     protected $fillable = [
@@ -18,12 +22,21 @@ class Aspirasi extends Model
         'selesai_pada', 'kode', 'alasan_penolakan', 'is_anonim', 'penanggung_jawab_id',
     ];
 
+    /*
+     * level_eskalasi, eskalasi_terakhir_pada, dan ditangani_pada sengaja TIDAK
+     * masuk $fillable: hanya EskalasiService yang boleh mengubahnya. Dengan
+     * begitu tidak ada jalur mass-assignment dari form untuk memalsukan level.
+     */
+
     protected $casts = [
         'tanggal_masuk' => 'datetime',
         'tenggat'       => 'datetime',
         'selesai_pada'  => 'datetime',
         'status'        => StatusAspirasi::class,
         'is_anonim'     => 'boolean',
+        'level_eskalasi' => 'integer',
+        'eskalasi_terakhir_pada' => 'datetime',
+        'ditangani_pada' => 'datetime',
     ];
 
     // ───────────── Relasi ─────────────
@@ -67,6 +80,20 @@ class Aspirasi extends Model
         return $this->hasMany(Lampiran::class, 'aspirasi_id');
     }
 
+    /** Riwayat eskalasi (satu baris per level, unik di DB). */
+    public function eskalasi(): HasMany
+    {
+        return $this->hasMany(Eskalasi::class, 'aspirasi_id')->orderBy('level');
+    }
+
+    /** Jejak audit seluruh perubahan atas aspirasi ini. */
+    public function riwayat(): HasMany
+    {
+        return $this->hasMany(RiwayatPerubahan::class, 'aspirasi_id')
+            ->orderByDesc('terjadi_pada')
+            ->orderByDesc('id');
+    }
+
     // ───────────── Computed attributes ─────────────
     /**
      * Selisih hari tenggat dari sekarang (negatif = terlambat).
@@ -87,6 +114,98 @@ class Aspirasi extends Model
             && $this->status->berjalan();
     }
 
+    /** "3 hari lagi", "besok", "hari ini", "lewat 2 hari" — dipakai tabel. */
+    public function getLabelTenggatAttribute(): string
+    {
+        if (! $this->tenggat) {
+            return 'tanpa tenggat';
+        }
+
+        $hari = $this->hari_tersisa;
+
+        return match (true) {
+            $hari > 1  => $hari.' hari lagi',
+            $hari === 1 => 'besok',
+            $hari === 0 => 'hari ini',
+            default    => 'lewat '.abs($hari).' hari',
+        };
+    }
+
+    /** Persentase waktu terpakai terhadap tenggat (0–100). */
+    public function getProgresAttribute(): int
+    {
+        if (! $this->tanggal_masuk || ! $this->tenggat) {
+            return 0;
+        }
+
+        $total = max(1, (int) $this->tanggal_masuk->diffInMinutes($this->tenggat));
+        $terpakai = (int) $this->tanggal_masuk->diffInMinutes(now(), false);
+
+        return (int) max(0, min(100, round($terpakai / $total * 100)));
+    }
+
+    /** Label level eskalasi untuk tampilan. */
+    public function getLabelEskalasiAttribute(): string
+    {
+        return Eskalasi::LABEL[$this->level_eskalasi] ?? 'Normal';
+    }
+
+    // ───────────── Privasi / anonimitas ─────────────
+
+    /**
+     * Siapa yang boleh melihat identitas pelapor?
+     *
+     * Aspirasi anonim: hanya pelapor itu sendiri dan Super Admin (keperluan
+     * audit — setiap pembukaan tercatat di log_keamanan). Petugas, pimpinan,
+     * dan ULTKSP hanya melihat "Anonim".
+     */
+    public function identitasTerbukaUntuk(?Pengguna $user): bool
+    {
+        if (! $this->is_anonim) {
+            return true;
+        }
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->id === $this->pengguna_id || $user->isSuperAdmin();
+    }
+
+    public function namaPelapor(?Pengguna $user = null): string
+    {
+        $user ??= auth()->user();
+
+        if (! $this->identitasTerbukaUntuk($user)) {
+            return 'Anonim';
+        }
+
+        return $this->pengguna?->nama ?? 'Pengguna dihapus';
+    }
+
+    public function inisialPelapor(?Pengguna $user = null): string
+    {
+        $user ??= auth()->user();
+
+        return $this->identitasTerbukaUntuk($user)
+            ? ($this->pengguna?->inisial ?? 'AN')
+            : 'AN';
+    }
+
+    /** NPM/NIP tersamar: ************1234 → ****1234. */
+    public function npmPelapor(?Pengguna $user = null): ?string
+    {
+        $user ??= auth()->user();
+
+        if (! $this->identitasTerbukaUntuk($user)) {
+            return null;
+        }
+
+        $npm = $this->pengguna?->npm_nip;
+
+        return $npm ? str_repeat('*', max(0, mb_strlen($npm) - 4)).mb_substr($npm, -4) : null;
+    }
+
     // ───────────── Query scopes ─────────────
     public function scopeBerjalan(Builder $query): Builder
     {
@@ -99,6 +218,33 @@ class Aspirasi extends Model
     public function scopeTerlambat(Builder $query): Builder
     {
         return $query->berjalan()->where('tenggat', '<', now());
+    }
+
+    /** Kandidat pemindaian eskalasi: masih berjalan & belum level tertinggi. */
+    public function scopePerluDipindai(Builder $query): Builder
+    {
+        return $query->berjalan()->where('level_eskalasi', '<', 3);
+    }
+
+    /**
+     * Pencarian bebas pada kode tiket, judul, dan uraian.
+     * Wildcard LIKE dari input pengguna di-escape agar tidak jadi pola liar.
+     */
+    public function scopeCari(Builder $query, ?string $kata): Builder
+    {
+        $kata = trim((string) $kata);
+
+        if ($kata === '') {
+            return $query;
+        }
+
+        $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $kata).'%';
+
+        return $query->where(function (Builder $w) use ($like) {
+            $w->where('judul', 'like', $like)
+                ->orWhere('isi', 'like', $like)
+                ->orWhere('kode', 'like', $like);
+        });
     }
 
     /**
@@ -129,9 +275,6 @@ class Aspirasi extends Model
         static::creating(function (Aspirasi $aspirasi) {
             if (empty($aspirasi->kode)) {
                 $aspirasi->kode = static::generateKode();
-            }
-            if (empty($aspirasi->kode_tiket)) {
-                $aspirasi->kode_tiket = $aspirasi->kode;
             }
         });
     }

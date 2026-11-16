@@ -38,7 +38,7 @@ class DataAwalSeeder extends Seeder
             [
                 'nama' => 'Administrator',
                 'password' => Hash::make('password'),
-                'role' => Role::Admin,
+                'role' => Role::SuperAdmin,
                 'unit_id' => null,
             ],
         );

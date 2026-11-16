@@ -55,7 +55,7 @@
                             <tr class="{{ $a->terlambat ? 'row-late' : '' }}">
                                 <td>
                                     <a class="ttl" href="{{ route('aspirasi.show', $a) }}">{{ $a->judul }}</a>
-                                    <span class="meta">{{ $a->kode }} · {{ $a->pengguna->nama }}</span>
+                                    <span class="meta">{{ $a->kode }} · {{ $a->namaPelapor() }}</span>
                                 </td>
                                 <td><span class="badge b-netral">{{ $a->kategori->nama }}</span></td>
                                 <td style="color:var(--ink-2)">{{ $a->unit->nama }}</td>

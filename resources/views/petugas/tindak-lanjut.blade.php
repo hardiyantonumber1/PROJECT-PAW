@@ -67,7 +67,7 @@
                     <div class="kv">
                         <div class="kv-row">
                             <div class="kv-k" style="width:78px;flex:0 0 78px">Nama</div>
-                            <div class="kv-v">{{ $aspirasi->pengguna->nama }}</div>
+                            <div class="kv-v">{{ $aspirasi->namaPelapor() }}</div>
                         </div>
                         <div class="kv-row">
                             <div class="kv-k" style="width:78px;flex:0 0 78px">Peran</div>
@@ -106,7 +106,7 @@
                             <div class="tl-dot"></div>
                             <div class="tl-h">Aspirasi diajukan <span class="badge b-netral">status awal</span></div>
                             <div class="tl-t">
-                                {{ $aspirasi->pengguna->nama }} · {{ $aspirasi->tanggal_masuk->translatedFormat('j M Y H.i') }}
+                                {{ $aspirasi->namaPelapor() }} · {{ $aspirasi->tanggal_masuk->translatedFormat('j M Y H.i') }}
                             </div>
                         </div>
 

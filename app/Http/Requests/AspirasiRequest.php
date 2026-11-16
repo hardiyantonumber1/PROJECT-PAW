@@ -21,6 +21,7 @@ class AspirasiRequest extends FormRequest
             'kategori_id' => ['required', 'integer', 'exists:kategori,id'],
             'unit_id' => ['required', 'integer', 'exists:unit,id'],
             'isi' => ['required', 'string', 'min:20', 'max:2000'],
+            'is_anonim' => ['nullable', 'boolean'],
             'pernyataan' => [$this->isMethod('POST') ? 'accepted' : 'nullable'],
         ];
     }

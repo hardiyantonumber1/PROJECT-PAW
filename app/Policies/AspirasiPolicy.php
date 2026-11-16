@@ -21,7 +21,7 @@ class AspirasiPolicy
         }
 
         if ($user->isPetugas()) {
-            return $user->unit_id === $aspirasi->unit_id;
+            return $user->unit_id !== null && $user->unit_id === $aspirasi->unit_id;
         }
 
         return $aspirasi->pengguna_id === $user->id;
@@ -42,8 +42,23 @@ class AspirasiPolicy
     /** RB-01: hanya petugas unit terkait yang boleh mengubah status. */
     public function tindakLanjut(Pengguna $user, Aspirasi $aspirasi): bool
     {
+        if (! $aspirasi->status->berjalan()) {
+            return false;
+        }
+
+        // Peran pengawas boleh mencatat tindak lanjut lintas unit (audit).
+        if ($user->isAdminProdi() || $user->isSuperAdmin() || $user->isUltksp() || $user->isPimpinan()) {
+            return true;
+        }
+
         return $user->isPetugas()
-            && $user->unit_id === $aspirasi->unit_id
-            && $aspirasi->status->berjalan();
+            && $user->unit_id !== null
+            && $user->unit_id === $aspirasi->unit_id;
+    }
+
+    /** Jejak audit boleh dibaca siapa pun yang boleh melihat aspirasinya. */
+    public function lihatRiwayat(Pengguna $user, Aspirasi $aspirasi): bool
+    {
+        return $this->view($user, $aspirasi);
     }
 }

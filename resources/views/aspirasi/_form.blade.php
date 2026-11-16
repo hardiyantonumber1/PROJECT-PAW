@@ -101,6 +101,16 @@
                     </label>
                 @endunless
 
+                <label style="display:flex;align-items:flex-start;gap:9px;padding:12px 13px;background:#FAFBFD;border:1px solid var(--line-2);border-radius:10px;cursor:pointer">
+                    <input type="checkbox" name="is_anonim" value="1"
+                           {{ old('is_anonim', $ubah ? $aspirasi->is_anonim : false) ? 'checked' : '' }}
+                           style="width:15px;height:15px;margin-top:2px;flex:0 0 15px">
+                    <span style="font-size:11.5px;color:var(--ink-2);line-height:1.6">
+                        <b>Sembunyikan identitas saya.</b> Petugas hanya melihat “Anonim” — nama dan NPM tidak
+                        ditampilkan pada daftar, detail, maupun berkas ekspor.
+                    </span>
+                </label>
+
                 <div style="display:flex;gap:9px;justify-content:flex-end;border-top:1px solid var(--line-2);padding-top:15px">
                     <a class="btn btn-s" href="{{ $batal }}">Batal</a>
                     <button type="submit" class="btn btn-p">

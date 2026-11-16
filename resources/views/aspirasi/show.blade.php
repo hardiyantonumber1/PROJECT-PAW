@@ -33,6 +33,14 @@
                 @else
                     <span class="badge b-netral">Tenggat {{ $aspirasi->tenggat->translatedFormat('j M') }}</span>
                 @endif
+                @if ($aspirasi->level_eskalasi > 0)
+                    <span class="badge {{ $aspirasi->level_eskalasi >= 3 ? 'b-tolak' : ($aspirasi->level_eskalasi === 2 ? 'b-late' : 'b-proses') }}">
+                        <i></i>Eskalasi L{{ $aspirasi->level_eskalasi }} · {{ $aspirasi->label_eskalasi }}
+                    </span>
+                @endif
+                @if ($aspirasi->is_anonim)
+                    <span class="badge b-netral">Pelapor anonim</span>
+                @endif
             </div>
         </div>
         <div class="head-actions">
@@ -146,10 +154,72 @@
                             <div class="tl-dot"></div>
                             <div class="tl-h">Aspirasi diajukan <span class="badge b-netral">status awal</span></div>
                             <div class="tl-t">
-                                {{ $aspirasi->pengguna->nama }} · {{ $aspirasi->tanggal_masuk->translatedFormat('j M Y H.i') }}
+                                {{ $aspirasi->namaPelapor() }} · {{ $aspirasi->tanggal_masuk->translatedFormat('j M Y H.i') }}
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {{-- ------------------------------------------------------------
+                 Jejak audit: siapa mengubah apa, kapan, dari nilai berapa.
+                 ------------------------------------------------------------ --}}
+            <div class="card">
+                <div class="card-h">
+                    <div class="card-t">Riwayat perubahan data</div>
+                    <span class="badge b-netral" style="margin-left:auto">{{ $aspirasi->riwayat->count() }} catatan</span>
+                </div>
+                <div class="card-b">
+                    @if ($aspirasi->riwayat->isEmpty())
+                        <div class="empty" style="padding:18px 0">
+                            <b>Belum ada perubahan tercatat</b>
+                            Setiap perubahan judul, uraian, status, kategori, atau tenggat akan muncul di sini.
+                        </div>
+                    @else
+                        <div class="timeline">
+                            @foreach ($aspirasi->riwayat as $r)
+                                <div class="tl">
+                                    <div class="tl-dot {{ $r->aksi === 'eskalasi' ? 'now' : 'ok' }}"></div>
+                                    <div class="tl-h">
+                                        <span class="badge {{ $r->badge() }}"><i></i>{{ $r->labelAksi() }}</span>
+                                        @if ($r->field)
+                                            <span style="font-size:11px;color:var(--ink-3)">
+                                                {{ $r->keterangan ?? $r->field }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="tl-t">
+                                        {{ $r->aktor ?? 'Sistem' }}
+                                        @if ($r->aktor_peran && $r->aktor_peran !== 'sistem')
+                                            · {{ $r->aktor_peran }}
+                                        @endif
+                                        · {{ $r->terjadi_pada?->translatedFormat('j M Y H.i') }}
+                                    </div>
+                                    @if ($r->nilai_lama !== null || $r->nilai_baru !== null)
+                                        <div class="tl-b" style="font-size:11.5px">
+                                            @if ($r->field === 'status' || $r->field === 'level_eskalasi')
+                                                <b>{{ $r->nilai_lama ?? '—' }}</b>
+                                                →
+                                                <b>{{ $r->nilai_baru ?? '—' }}</b>
+                                            @else
+                                                <span style="color:var(--ink-3)">Dari:</span>
+                                                {{ \Illuminate\Support\Str::limit($r->nilai_lama ?? '—', 120) }}
+                                                <br>
+                                                <span style="color:var(--ink-3)">Menjadi:</span>
+                                                {{ \Illuminate\Support\Str::limit($r->nilai_baru ?? '—', 120) }}
+                                            @endif
+                                            @if ($r->keterangan && ! $r->field)
+                                                <div style="margin-top:4px">{{ $r->keterangan }}</div>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+                <div style="padding:11px 16px;border-top:1px solid var(--line-2);font-size:10.5px;color:var(--ink-3)">
+                    Catatan audit bersifat tetap — tidak dapat diubah atau dihapus dari aplikasi.
                 </div>
             </div>
         </div>
@@ -163,8 +233,19 @@
                     <div class="kv">
                         <div class="kv-row">
                             <div class="kv-k">Pelapor</div>
-                            <div class="kv-v">{{ $aspirasi->pengguna->nama }}</div>
+                            <div class="kv-v" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                                {{ $aspirasi->namaPelapor() }}
+                                @if ($aspirasi->is_anonim)
+                                    <span class="badge b-netral">identitas terlindungi</span>
+                                @endif
+                            </div>
                         </div>
+                        @if ($aspirasi->npmPelapor())
+                            <div class="kv-row">
+                                <div class="kv-k">NPM/NIP</div>
+                                <div class="kv-v">{{ $aspirasi->npmPelapor() }}</div>
+                            </div>
+                        @endif
                         <div class="kv-row">
                             <div class="kv-k">Kategori</div>
                             <div class="kv-v">{{ $aspirasi->kategori->nama }}</div>
@@ -224,6 +305,39 @@
                                 {{ $aspirasi->tindakLanjut->first()->tanggal->translatedFormat('j M') }}
                             </div>
                         </div>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Eskalasi: hanya tampil bila aspirasi pernah naik tingkat. --}}
+            @if ($aspirasi->eskalasi->isNotEmpty())
+                <div class="card">
+                    <div class="card-h">
+                        <div class="card-t">Jalur eskalasi</div>
+                        <span class="badge b-netral" style="margin-left:auto">L{{ $aspirasi->level_eskalasi }}</span>
+                    </div>
+                    <div class="card-b" style="display:flex;flex-direction:column;gap:11px">
+                        @foreach ($aspirasi->eskalasi as $e)
+                            <div style="display:flex;gap:10px;align-items:flex-start">
+                                <span class="badge {{ $e->badge() }}" style="flex:0 0 auto">L{{ $e->level }}</span>
+                                <div style="min-width:0">
+                                    <div style="font-size:12px;font-weight:700">{{ $e->label() }}</div>
+                                    <div style="font-size:11px;color:var(--ink-2);line-height:1.6;margin-top:2px">
+                                        {{ $e->rincian }}
+                                    </div>
+                                    <div style="font-size:10.5px;color:var(--ink-3);margin-top:3px">
+                                        {{ $e->terjadi_pada?->translatedFormat('j M Y H.i') }} ·
+                                        diteruskan ke {{ str_replace('_', ' ', $e->penerima_peran) }}
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                        @if ($aspirasi->ditangani_pada)
+                            <div style="border-top:1px solid var(--line-2);padding-top:10px;font-size:11px;color:var(--ink-2)">
+                                Terakhir ditangani {{ $aspirasi->ditangani_pada->translatedFormat('j M Y H.i') }} —
+                                eskalasi otomatis ditahan selama masa tenggang respons.
+                            </div>
+                        @endif
                     </div>
                 </div>
             @endif

@@ -43,6 +43,7 @@ class PenggunaFactory extends Factory
 
     public function admin(): static
     {
-        return $this->state(fn () => ['role' => Role::Admin, 'unit_id' => null]);
+        // Role::Admin hanyalah alias method; enum case sebenarnya SuperAdmin.
+        return $this->state(fn () => ['role' => Role::SuperAdmin, 'unit_id' => null]);
     }
 }

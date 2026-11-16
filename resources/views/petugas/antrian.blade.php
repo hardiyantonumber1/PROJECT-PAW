@@ -137,7 +137,7 @@
                                     <span class="meta">{{ $a->kode }} · {{ $a->kategori->nama }}</span>
                                 </td>
                                 <td style="color:var(--ink-2)">
-                                    {{ $a->pengguna->nama }} · {{ $a->pengguna->unit?->nama ?? '-' }}
+                                    {{ $a->namaPelapor() }} · {{ $a->pengguna->unit?->nama ?? '-' }}
                                 </td>
                                 <td><span class="badge {{ $a->status->badge() }}"><i></i>{{ $a->status->value }}</span></td>
                                 <td>

@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
+use App\Models\LogKeamanan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -15,24 +16,12 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function masuk(Request $request): RedirectResponse
+    /**
+     * Autentikasi ditangani LoginRequest: validasi, rate limit, dan log keamanan.
+     */
+    public function masuk(LoginRequest $request): RedirectResponse
     {
-        $kredensial = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ], [
-            'email.required' => 'Email wajib diisi.',
-            'email.email' => 'Format email tidak valid.',
-            'password.required' => 'Kata sandi wajib diisi.',
-        ]);
-
-        $ingat = $request->boolean('remember');
-
-        if (! Auth::attempt(['email' => $kredensial['email'], 'password' => $kredensial['password']], $ingat)) {
-            throw ValidationException::withMessages([
-                'email' => 'Email atau kata sandi tidak cocok.',
-            ]);
-        }
+        $request->authenticate();
 
         $request->session()->regenerate();
 
@@ -42,6 +31,8 @@ class AuthController extends Controller
 
     public function keluar(Request $request): RedirectResponse
     {
+        LogKeamanan::catat('logout', $request->user(), null, 'Keluar melalui menu.');
+
         Auth::logout();
 
         $request->session()->invalidate();

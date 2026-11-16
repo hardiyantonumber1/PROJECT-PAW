@@ -6,6 +6,7 @@ use App\Enums\StatusAspirasi;
 use App\Http\Requests\AspirasiRequest;
 use App\Models\Aspirasi;
 use App\Models\Kategori;
+use App\Models\LogKeamanan;
 use App\Models\Unit;
 use App\Support\EksporCsv;
 use App\Support\Ringkasan;
@@ -55,6 +56,8 @@ class AspirasiController extends Controller
             'status' => StatusAspirasi::Diajukan,
             'tanggal_masuk' => $masuk,
             'tenggat' => $masuk->copy()->addDays($kategori->batas_hari),
+            // Privasi: identitas pelapor disembunyikan dari petugas bila dicentang.
+            'is_anonim' => $request->boolean('is_anonim'),
         ]);
 
         return redirect()
@@ -71,10 +74,28 @@ class AspirasiController extends Controller
             'kategori',
             'unit',
             'tindakLanjut.pengguna.unit',
+            'eskalasi',
+            'riwayat.pengguna',
         ]);
 
         $penanganan = $aspirasi->tindakLanjut->first(fn ($tl) => $tl->pengguna?->isPetugas());
         $petugas = $penanganan?->pengguna;
+
+        /*
+         * Privasi: bila identitas pelapor anonim dibuka oleh peran pengawas
+         * (Super Admin), peristiwa itu wajib tercatat agar penyalahgunaan
+         * wewenang dapat ditelusuri.
+         */
+        if ($aspirasi->is_anonim
+            && $request->user()->isSuperAdmin()
+            && $request->user()->id !== $aspirasi->pengguna_id) {
+            LogKeamanan::catat(
+                'akses_anonim',
+                $request->user(),
+                null,
+                'Membuka identitas pelapor anonim pada '.$aspirasi->kode.'.'
+            );
+        }
 
         return view('aspirasi.show', compact('aspirasi', 'petugas'));
     }
@@ -104,6 +125,7 @@ class AspirasiController extends Controller
             'isi' => $data['isi'],
             // Tenggat dihitung ulang dari tanggal masuk bila kategori berubah.
             'tenggat' => $aspirasi->tanggal_masuk->copy()->addDays($kategori->batas_hari),
+            'is_anonim' => $request->boolean('is_anonim'),
         ])->save();
 
         return redirect()
@@ -117,14 +139,16 @@ class AspirasiController extends Controller
 
         $kode = $aspirasi->kode;
 
-        DB::transaction(function () use ($aspirasi) {
-            $aspirasi->tindakLanjut()->delete();
-            $aspirasi->delete();
-        });
+        /*
+         * Soft delete: baris tetap tersimpan (deleted_at terisi) sehingga
+         * riwayat penanganan dan jejak auditnya tidak ikut hilang. Hapus
+         * permanen hanya lewat operasi basis data oleh admin sistem.
+         */
+        $aspirasi->delete();
 
         return redirect()
             ->route('aspirasi.index')
-            ->with('sukses', 'Aspirasi '.$kode.' telah dihapus.');
+            ->with('sukses', 'Aspirasi '.$kode.' telah dihapus dari daftar (jejak audit tetap tersimpan).');
     }
 
     public function cari(Request $request): View
@@ -155,7 +179,8 @@ class AspirasiController extends Controller
             $a->judul,
             $a->kategori->nama,
             $a->unit->nama,
-            $a->pengguna->nama,
+            // Privasi: aspirasi anonim tetap tanpa nama pelapor di berkas ekspor.
+            $a->namaPelapor($request->user()),
             $a->status->value,
             $a->tanggal_masuk->translatedFormat('d/m/Y'),
             $a->tenggat->translatedFormat('d/m/Y'),

@@ -57,7 +57,7 @@ class _LegacyDatabaseSeeder_ref
             ],
         );
 
-        $akun('Admin Sistem', 'admin@kampus.ac.id', Role::Admin);
+        $akun('Admin Sistem', 'admin@kampus.ac.id', Role::SuperAdmin);
         $siti = $akun('Siti Aminah', 'siti@kampus.ac.id', Role::Petugas, $unit['BAAK']);
         $budi = $akun('Budi Santoso', 'budi@kampus.ac.id', Role::Petugas, $unit['BAU']);
 

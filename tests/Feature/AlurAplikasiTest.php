@@ -280,7 +280,12 @@ class AlurAplikasiTest extends TestCase
         $this->actingAs($mahasiswa)->delete(route('aspirasi.destroy', $aspirasi))
             ->assertRedirect(route('aspirasi.index'));
 
-        $this->assertDatabaseMissing('aspirasi', ['id' => $aspirasi->id]);
+        // Revisi: hapus = soft delete agar jejak audit & tindak lanjut tetap utuh.
+        $this->assertSoftDeleted('aspirasi', ['id' => $aspirasi->id]);
+        $this->assertDatabaseHas('riwayat_perubahan', [
+            'aspirasi_id' => $aspirasi->id,
+            'aksi' => 'dihapus',
+        ]);
     }
 
     public function test_mahasiswa_tidak_dapat_menghapus_aspirasi_orang_lain(): void

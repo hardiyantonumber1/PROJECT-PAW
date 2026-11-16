@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\KeamananHeader;
 use App\Http\Middleware\PastikanPeran;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Alias middleware peran: ->middleware('role:admin,petugas')
         $middleware->alias([
             'role' => PastikanPeran::class,
+        ]);
+
+        // Header keamanan untuk seluruh respons web.
+        $middleware->web(append: [
+            KeamananHeader::class,
         ]);
 
         // Tamu yang membuka halaman terlindungi diarahkan ke form login.

@@ -76,7 +76,7 @@
                         <tr>
                             <td>
                                 <div style="display:flex;align-items:center;gap:10px">
-                                    <div class="avatar" style="{{ $p->role === \App\Enums\Role::Admin ? 'background:#0C1424;color:#fff' : ($p->role === \App\Enums\Role::Petugas ? 'background:#E8F8F1;color:#0B7A55' : '') }}">
+                                    <div class="avatar" style="{{ $p->role === \App\Enums\Role::SuperAdmin ? 'background:#0C1424;color:#fff' : ($p->role === \App\Enums\Role::Petugas ? 'background:#E8F8F1;color:#0B7A55' : '') }}">
                                         {{ $p->inisial }}
                                     </div>
                                     <div>
@@ -86,7 +86,7 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge {{ $p->role === \App\Enums\Role::Admin ? 'b-admin' : ($p->role === \App\Enums\Role::Petugas ? 'b-verifikasi' : 'b-netral') }}">
+                                <span class="badge {{ $p->role === \App\Enums\Role::SuperAdmin ? 'b-admin' : ($p->role === \App\Enums\Role::Petugas ? 'b-verifikasi' : 'b-netral') }}">
                                     <i></i>{{ $p->role->value }}
                                 </span>
                             </td>
