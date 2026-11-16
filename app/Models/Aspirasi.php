@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class Aspirasi extends Model
 {
@@ -279,14 +280,48 @@ class Aspirasi extends Model
         });
     }
 
+    /**
+     * Kode tiket berikutnya.
+     *
+     * WAJIB memakai withTrashed(): baris yang sudah di-soft-delete tetap
+     * menempati kode di indeks UNIQUE. Tanpa ini, pengajuan setelah sebuah
+     * aspirasi dihapus akan memakai ulang kode lama dan gagal dengan
+     * "Duplicate entry ... for key aspirasi_kode_unique".
+     */
     public static function generateKode(): string
     {
         $prefix = 'ASP-' . now()->format('Ymd') . '-';
-        $last = static::where('kode', 'like', $prefix . '%')
+        $last = static::withTrashed()
+            ->where('kode', 'like', $prefix . '%')
             ->orderByDesc('kode')
             ->value('kode');
 
         $seq = $last ? (int) substr($last, -4) + 1 : 1;
+
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Simpan aspirasi baru dengan kode tiket yang dijamin unik.
+     *
+     * Dua pengajuan pada detik yang sama bisa menghasilkan kode yang sama;
+     * indeks UNIQUE menolaknya, lalu percobaan berikutnya membuat instance
+     * baru sehingga kode dihitung ulang.
+     *
+     * @param  array<string, mixed>  $atribut
+     */
+    public static function simpanBaru(array $atribut): self
+    {
+        $percobaan = 0;
+
+        while (true) {
+            try {
+                return static::create($atribut);
+            } catch (UniqueConstraintViolationException $e) {
+                if (++$percobaan >= 3) {
+                    throw $e;
+                }
+            }
+        }
     }
 }

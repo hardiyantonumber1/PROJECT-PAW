@@ -47,7 +47,7 @@ class AspirasiController extends Controller
         $masuk = now();
 
         // RB-02: tenggat disimpan sebagai snapshot, bukan dihitung ulang saat dibaca.
-        $aspirasi = Aspirasi::create([
+        $aspirasi = Aspirasi::simpanBaru([
             'pengguna_id' => $request->user()->id,
             'kategori_id' => $kategori->id,
             'unit_id' => $data['unit_id'],

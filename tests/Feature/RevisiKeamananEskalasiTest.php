@@ -220,6 +220,37 @@ class RevisiKeamananEskalasiTest extends TestCase
             ->assertSee('Diverifikasi');
     }
 
+    /**
+     * Regresi: setelah aspirasi dihapus (soft delete), kode tiketnya tetap
+     * menempati indeks UNIQUE sehingga pengajuan berikutnya tidak boleh
+     * memakai ulang kode yang sama.
+     */
+    public function test_kode_tiket_tidak_bentrok_setelah_aspirasi_dihapus(): void
+    {
+        $mahasiswa = $this->mahasiswa();
+        $kategori = Kategori::factory()->create(['batas_hari' => 5]);
+        $unit = Unit::factory()->create();
+
+        $data = [
+            'judul' => 'Lampu koridor gedung B padam sejak kemarin',
+            'kategori_id' => $kategori->id,
+            'unit_id' => $unit->id,
+            'isi' => 'Lampu koridor gedung B padam sejak kemarin sehingga jalur menuju kelas gelap.',
+            'pernyataan' => '1',
+        ];
+
+        $this->actingAs($mahasiswa)->post(route('aspirasi.store'), $data)->assertRedirect();
+        $pertama = Aspirasi::orderByDesc('id')->firstOrFail();
+
+        $this->actingAs($mahasiswa)->delete(route('aspirasi.destroy', $pertama))->assertRedirect();
+
+        $this->actingAs($mahasiswa)->post(route('aspirasi.store'), $data)->assertRedirect();
+        $kedua = Aspirasi::orderByDesc('id')->firstOrFail();
+
+        $this->assertNotSame($pertama->kode, $kedua->kode);
+        $this->assertSame(1, Aspirasi::withTrashed()->where('kode', $kedua->kode)->count());
+    }
+
     public function test_perubahan_status_dan_eskalasi_masuk_jejak_audit(): void
     {
         $unit = Unit::factory()->create();
