@@ -16,7 +16,9 @@ class AspirasiPolicy
     /** Admin boleh melihat semua; petugas unit terkait; mahasiswa pemilik. */
     public function view(Pengguna $user, Aspirasi $aspirasi): bool
     {
-        if ($user->isAdmin()) {
+        // Peran pengawas (ULTKSP & Pimpinan) memantau seluruh aspirasi —
+        // sama dengan lingkup daftar yang diberikan scopeTerlihatOleh().
+        if ($user->isAdmin() || $user->isUltksp() || $user->isPimpinan()) {
             return true;
         }
 

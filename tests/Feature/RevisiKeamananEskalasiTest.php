@@ -191,11 +191,39 @@ class RevisiKeamananEskalasiTest extends TestCase
         $this->assertSame('Judul baru setelah revisi pemohon', $baris->nilai_baru);
     }
 
+    /**
+     * Regresi: dashboard & detail mahasiswa pernah 500 karena
+     * tindak_lanjut.status_akhir terbaca string, bukan enum.
+     */
+    public function test_dashboard_mahasiswa_tetap_terbuka_saat_ada_tindak_lanjut(): void
+    {
+        $unit = Unit::factory()->create();
+        $petugas = $this->petugas($unit);
+        $mahasiswa = $this->mahasiswa();
+
+        $aspirasi = $this->aspirasi([
+            'pengguna_id' => $mahasiswa->id,
+            'unit_id' => $unit->id,
+        ]);
+
+        $this->actingAs($petugas)->post(route('petugas.tindak-lanjut.store', $aspirasi), [
+            'status_akhir' => StatusAspirasi::Diverifikasi->value,
+            'tanggapan' => 'Sudah diverifikasi, diteruskan ke unit sarana.',
+        ])->assertRedirect(route('petugas.antrian'));
+
+        $this->actingAs($mahasiswa)->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Diverifikasi');
+
+        $this->actingAs($mahasiswa)->get(route('aspirasi.show', $aspirasi))
+            ->assertOk()
+            ->assertSee('Diverifikasi');
+    }
+
     public function test_perubahan_status_dan_eskalasi_masuk_jejak_audit(): void
     {
         $unit = Unit::factory()->create();
         $petugas = $this->petugas($unit);
-
         $aspirasi = $this->aspirasi([
             'unit_id' => $unit->id,
             'tanggal_masuk' => now()->subHours(30),
